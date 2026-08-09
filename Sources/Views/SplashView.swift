@@ -5,8 +5,8 @@ struct SplashView: View {
     @State private var showTitle = false
     @State private var showSub = false
 
-    private let title1 = "Ты —"
-    private let title2 = "писатель"
+    private let chars1 = Array("Ты —")
+    private let chars2 = Array("писатель")
 
     var body: some View {
         ZStack {
@@ -15,12 +15,12 @@ struct SplashView: View {
             VStack(spacing: 12) {
                 Text("✍️")
                     .font(.system(size: 72))
-                    .offset(y: showTitle ? 0 : 20)
                     .opacity(showTitle ? 1 : 0)
+                    .offset(y: showTitle ? 0 : 20)
 
                 HStack(spacing: 0) {
-                    ForEach(Array(title1.enumerated()), id: \.offset) { i, ch in
-                        Text(String(ch))
+                    ForEach(chars1.indices, id: \.self) { i in
+                        Text(String(chars1[i]))
                             .font(.system(size: 42, weight: .bold, design: .serif))
                             .foregroundColor(.white)
                             .opacity(showTitle ? 1 : 0)
@@ -34,8 +34,8 @@ struct SplashView: View {
                 }
 
                 HStack(spacing: 0) {
-                    ForEach(Array(title2.enumerated()), id: \.offset) { i, ch in
-                        Text(String(ch))
+                    ForEach(chars2.indices, id: \.self) { i in
+                        Text(String(chars2[i]))
                             .font(.system(size: 52, weight: .bold, design: .serif))
                             .foregroundColor(.white)
                             .opacity(showTitle ? 1 : 0)
