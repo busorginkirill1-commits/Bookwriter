@@ -15,101 +15,11 @@ struct EditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let book = book {
-                // Список глав
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(Array(book.chapters.enumerated()), id: \.element.id) { i, ch in
-                            Button {
-                                saveCurrent()
-                                selectedChapter = i
-                                text = book.chapters[i].text
-                            } label: {
-                                Text(ch.title)
-                                    .font(.caption.bold())
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        i == selectedChapter
-                                            ? Color.blue.opacity(0.15)
-                                            : Color(.tertiarySystemFill)
-                                    )
-                                    .foregroundColor(
-                                        i == selectedChapter ? .blue : .primary
-                                    )
-                                    .clipShape(Capsule())
-                            }
-                        }
-
-                        Button {
-                            store.addChapter(to: bookID)
-                        } label: {
-                            Image(systemName: "plus")
-                                .font(.caption.bold())
-                                .padding(8)
-                                .background(Color(.tertiarySystemFill))
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                }
-                .background(Color(.systemBackground))
-
+                chapterBar(book: book)
                 Divider()
-
-                // Редактор
-                ZStack(alignment: .topLeading) {
-                    if text.isEmpty {
-                        Text("Начните писать свою историю...")
-                            .foregroundColor(Color(.tertiaryLabel))
-                            .font(.system(size: fontSize))
-                            .padding(.top, 20)
-                            .padding(.leading, 20)
-                    }
-
-                    ScrollView {
-                        TextEditor(text: $text)
-                            .font(.system(size: fontSize))
-                            .lineSpacing(8)
-                            .padding(16)
-                            .scrollContentBackground(.hidden)
-                            .frame(minHeight: 400)
-                            .onChange(of: text) { _ in
-                                saveCurrent()
-                            }
-                    }
-                }
-
+                editorArea
                 Divider()
-
-                // Нижняя панель
-                HStack {
-                    Button { fontSize = max(12, fontSize - 1) } label: {
-                        Text("A−").font(.caption.bold())
-                    }
-
-                    Text("\(text.split(separator: " ").count) слов")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.1))
-                        .clipShape(Capsule())
-
-                    Button { fontSize = min(28, fontSize + 1) } label: {
-                        Text("A+").font(.caption.bold())
-                    }
-
-                    Spacer()
-
-                    Button { showTools = true } label: {
-                        Image(systemName: "wand.and.stars")
-                            .font(.body)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color(.systemBackground))
+                bottomBar
             }
         }
         .navigationTitle(book?.title ?? "Книга")
@@ -122,7 +32,7 @@ struct EditorView: View {
             }
         }
         .sheet(isPresented: $showTools) {
-            AIToolsSheet(text: $text, bookID: bookID)
+            AIToolsSheet()
         }
         .onAppear {
             if let book = book, selectedChapter < book.chapters.count {
@@ -130,6 +40,103 @@ struct EditorView: View {
             }
         }
         .onDisappear { saveCurrent() }
+    }
+
+    private func chapterBar(book: Book) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(book.chapters.indices, id: \.self) { i in
+                    Button {
+                        saveCurrent()
+                        selectedChapter = i
+                        text = book.chapters[i].text
+                    } label: {
+                        Text(book.chapters[i].title)
+                            .font(.caption.bold())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                i == selectedChapter
+                                    ? Color.blue.opacity(0.15)
+                                    : Color(.tertiarySystemFill)
+                            )
+                            .foregroundColor(
+                                i == selectedChapter ? .blue : .primary
+                            )
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Button {
+                    saveCurrent()
+                    store.addChapter(to: bookID)
+                    if let b = store.books.first(where: { $0.id == bookID }) {
+                        selectedChapter = b.chapters.count - 1
+                        text = ""
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.bold())
+                        .padding(8)
+                        .background(Color(.tertiarySystemFill))
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    private var editorArea: some View {
+        ZStack(alignment: .topLeading) {
+            if text.isEmpty {
+                Text("Начните писать свою историю...")
+                    .foregroundColor(Color(.tertiaryLabel))
+                    .font(.system(size: fontSize))
+                    .padding(.top, 24)
+                    .padding(.leading, 20)
+            }
+
+            TextEditor(text: $text)
+                .font(.system(size: fontSize))
+                .lineSpacing(8)
+                .padding(.horizontal, 16)
+                .scrollContentBackground(.hidden)
+                .onChange(of: text) { _ in
+                    saveCurrent()
+                }
+        }
+    }
+
+    private var bottomBar: some View {
+        HStack {
+            Button { fontSize = max(12, fontSize - 1) } label: {
+                Text("A−").font(.caption.bold())
+            }
+
+            Text("\(text.split(separator: " ").count) слов")
+                .font(.caption)
+                .foregroundColor(.blue)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.blue.opacity(0.1))
+                .clipShape(Capsule())
+
+            Button { fontSize = min(28, fontSize + 1) } label: {
+                Text("A+").font(.caption.bold())
+            }
+
+            Spacer()
+
+            Button { showTools = true } label: {
+                Image(systemName: "wand.and.stars")
+                    .font(.body)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground))
     }
 
     private func saveCurrent() {
@@ -141,62 +148,45 @@ struct EditorView: View {
     }
 }
 
+struct AITool: Identifiable {
+    let id: String
+    let icon: String
+    let name: String
+}
+
 struct AIToolsSheet: View {
-    @Binding var text: String
-    let bookID: UUID
     @Environment(\.dismiss) var dismiss
 
-    let tools: [(String, String, String)] = [
-        ("🔧", "Исправить ошибки", "fix"),
-        ("✨", "Улучшить стиль", "style"),
-        ("📉", "Сократить", "shorten"),
-        ("➡️", "Продолжить текст", "continue"),
-        ("💡", "Идеи для сюжета", "idea"),
-        ("👤", "Создать персонажа", "character"),
-        ("💬", "Написать диалог", "dialogue"),
-        ("😊", "Настроение", "sentiment"),
-        ("📊", "Полный анализ", "analyze")
+    private let improveTools: [AITool] = [
+        AITool(id: "fix", icon: "🔧", name: "Исправить ошибки"),
+        AITool(id: "style", icon: "✨", name: "Улучшить стиль"),
+        AITool(id: "shorten", icon: "📉", name: "Сократить"),
+        AITool(id: "continue", icon: "➡️", name: "Продолжить текст")
+    ]
+
+    private let generateTools: [AITool] = [
+        AITool(id: "idea", icon: "💡", name: "Идеи для сюжета"),
+        AITool(id: "character", icon: "👤", name: "Создать персонажа"),
+        AITool(id: "dialogue", icon: "💬", name: "Написать диалог")
+    ]
+
+    private let analyzeTools: [AITool] = [
+        AITool(id: "sentiment", icon: "😊", name: "Настроение"),
+        AITool(id: "genre", icon: "📚", name: "Жанр"),
+        AITool(id: "analyze", icon: "📊", name: "Полный анализ")
     ]
 
     var body: some View {
         NavigationStack {
             List {
                 Section("✨ Улучшение текста") {
-                    ForEach(tools.prefix(4), id: \.2) { tool in
-                        Button {
-                            // TODO: AI Engine на шаге 2
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Text(tool.0)
-                                Text(tool.1).foregroundColor(.primary)
-                            }
-                        }
-                    }
+                    toolButtons(improveTools)
                 }
                 Section("💡 Генерация") {
-                    ForEach(tools[4..<7], id: \.2) { tool in
-                        Button {
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Text(tool.0)
-                                Text(tool.1).foregroundColor(.primary)
-                            }
-                        }
-                    }
+                    toolButtons(generateTools)
                 }
                 Section("📊 Анализ") {
-                    ForEach(tools[7...], id: \.2) { tool in
-                        Button {
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Text(tool.0)
-                                Text(tool.1).foregroundColor(.primary)
-                            }
-                        }
-                    }
+                    toolButtons(analyzeTools)
                 }
             }
             .navigationTitle("⚙️ Инструменты")
@@ -208,5 +198,19 @@ struct AIToolsSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    private func toolButtons(_ tools: [AITool]) -> some View {
+        ForEach(tools) { tool in
+            Button {
+                // ИИ подключим на следующем шаге
+                dismiss()
+            } label: {
+                HStack {
+                    Text(tool.icon)
+                    Text(tool.name).foregroundColor(.primary)
+                }
+            }
+        }
     }
 }
